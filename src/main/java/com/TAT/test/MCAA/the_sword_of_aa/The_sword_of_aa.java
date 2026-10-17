@@ -5,16 +5,20 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
+import net.minecraft.world.item.Tiers;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -48,13 +52,18 @@ public class The_sword_of_aa {
     // 堆叠上限 1、稀有度「少见」——与不死图腾保持一致
     public static final RegistryObject<Item> AMULET = ITEMS.register("amulet", () -> new AmuletItem(new Item.Properties().stacksTo(1).rarity(Rarity.UNCOMMON)));
 
+    // 冒险协会之剑：攻击力「无穷大」（Float.MAX_VALUE）一击必杀；耐久无穷大（见 AdventureSwordItem）
+    public static final RegistryObject<Item> ADVENTURE_SWORD = ITEMS.register("adventure_sword",
+            () -> new AdventureSwordItem(Tiers.NETHERITE, new Item.Properties().rarity(Rarity.EPIC).fireResistant()));
+
     // The mod's own creative tab, with the id "the_sword_of_aa:mcaa" and the display name "MCAA"
     public static final RegistryObject<CreativeModeTab> MCAA_TAB = CREATIVE_MODE_TABS.register("mcaa", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.the_sword_of_aa.mcaa"))
             .withTabsBefore(CreativeModeTabs.SPAWN_EGGS)
             .icon(() -> AMULET.get().getDefaultInstance())
             .displayItems((parameters, output) -> {
-                // MCAA 分类目前只有护身符
+                // MCAA 分类：冒险协会之剑 + 护身符
+                output.accept(ADVENTURE_SWORD.get());
                 output.accept(AMULET.get());
             }).build());
 
@@ -102,6 +111,22 @@ public class The_sword_of_aa {
     public void onLivingDeath(LivingDeathEvent event) {
         if (AmuletItem.tryProtectFromDeath(event.getEntity(), event.getSource())) {
             event.setCanceled(true);
+        }
+    }
+
+    // 冒险协会之剑：主手或副手手持时，持续给予持有者生命恢复
+    @SubscribeEvent
+    public void onLivingTick(LivingEvent.LivingTickEvent event) {
+        LivingEntity entity = event.getEntity();
+        // 只在逻辑服务端施加，客户端会自动通过网络同步
+        if (entity.level().isClientSide()) {
+            return;
+        }
+        boolean holding = entity.getMainHandItem().is(ADVENTURE_SWORD.get())
+                || entity.getOffhandItem().is(ADVENTURE_SWORD.get());
+        if (holding) {
+            // 每 tick 刷新一次（每次 2 秒），因此离开手后最多 2 秒自动消失
+            entity.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 40, 255, false, false, true));
         }
     }
 
