@@ -53,11 +53,15 @@ public class The_sword_of_aa {
     // Creates a new food item with the id "the_sword_of_aa:example_id", nutrition 1 and saturation 2
     public static final RegistryObject<Item> EXAMPLE_ITEM = ITEMS.register("example_item", () -> new Item(new Item.Properties().food(new FoodProperties.Builder().alwaysEat().nutrition(1).saturationMod(2f).build())));
 
+    // The icon item used by the MCAA creative tab. Its texture is currently a blank 16x16 canvas:
+    // assets/the_sword_of_aa/textures/item/mcaa_icon.png (draw your own artwork there)
+    public static final RegistryObject<Item> MCAA_ICON = ITEMS.register("mcaa_icon", () -> new Item(new Item.Properties()));
+
     // The mod's own creative tab, with the id "the_sword_of_aa:mcaa" and the display name "MCAA"
     public static final RegistryObject<CreativeModeTab> MCAA_TAB = CREATIVE_MODE_TABS.register("mcaa", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.the_sword_of_aa.mcaa"))
             .withTabsBefore(CreativeModeTabs.SPAWN_EGGS)
-            .icon(() -> EXAMPLE_ITEM.get().getDefaultInstance())
+            .icon(() -> MCAA_ICON.get().getDefaultInstance())
             .displayItems((parameters, output) -> {
                 // Add all of this mod's items to the MCAA tab
                 output.accept(EXAMPLE_ITEM.get());
