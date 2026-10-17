@@ -6,6 +6,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SwordItem;
 import net.minecraft.world.item.Tier;
 
@@ -42,5 +43,26 @@ public class AdventureSwordItem extends SwordItem {
                 .put(Attributes.ATTACK_SPEED, new AttributeModifier(BASE_ATTACK_SPEED_UUID, "Weapon modifier",
                         ATTACK_SPEED, AttributeModifier.Operation.ADDITION))
                 .build();
+    }
+
+    /**
+     * 耐久无穷大：返回 false 表示该物品不可被消耗/损坏。
+     *
+     * <p>{@code ItemStack.isDamageableItem()} 与 Forge 的
+     * {@code IForgeItem#isDamageable(ItemStack)} 都以此为准，返回 false 后
+     * {@code ItemStack.hurtAndBreak} 不再扣耐久，物品也不会显示耐久条。</p>
+     */
+    @Override
+    public boolean canBeDepleted() {
+        return false;
+    }
+
+    /**
+     * 原版 {@code Item#isEnchantable} 的判定依赖「可损坏」，上面关掉之后会连带
+     * 失去附魔台附魔能力，这里显式保留（附魔值仍取下界合金级的 15）。
+     */
+    @Override
+    public boolean isEnchantable(ItemStack stack) {
+        return true;
     }
 }
