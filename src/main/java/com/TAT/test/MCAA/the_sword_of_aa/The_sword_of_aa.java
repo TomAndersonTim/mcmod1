@@ -4,11 +4,14 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Rarity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -16,6 +19,7 @@ import net.minecraft.world.level.material.MapColor;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -53,17 +57,18 @@ public class The_sword_of_aa {
     // Creates a new food item with the id "the_sword_of_aa:example_id", nutrition 1 and saturation 2
     public static final RegistryObject<Item> EXAMPLE_ITEM = ITEMS.register("example_item", () -> new Item(new Item.Properties().food(new FoodProperties.Builder().alwaysEat().nutrition(1).saturationMod(2f).build())));
 
-    // The icon item used by the MCAA creative tab. Its texture is currently a blank 16x16 canvas:
-    // assets/the_sword_of_aa/textures/item/mcaa_icon.png (draw your own artwork there)
-    public static final RegistryObject<Item> MCAA_ICON = ITEMS.register("mcaa_icon", () -> new Item(new Item.Properties()));
+    // 护身符（Amulet）：一枚独立物品，拥有与不死图腾完全相同的效果，同时作为 MCAA 分类的图标
+    // 堆叠上限 1、稀有度「少见」——与不死图腾保持一致
+    public static final RegistryObject<Item> AMULET = ITEMS.register("amulet", () -> new AmuletItem(new Item.Properties().stacksTo(1).rarity(Rarity.UNCOMMON)));
 
     // The mod's own creative tab, with the id "the_sword_of_aa:mcaa" and the display name "MCAA"
     public static final RegistryObject<CreativeModeTab> MCAA_TAB = CREATIVE_MODE_TABS.register("mcaa", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.the_sword_of_aa.mcaa"))
             .withTabsBefore(CreativeModeTabs.SPAWN_EGGS)
-            .icon(() -> MCAA_ICON.get().getDefaultInstance())
+            .icon(() -> AMULET.get().getDefaultInstance())
             .displayItems((parameters, output) -> {
                 // Add all of this mod's items to the MCAA tab
+                output.accept(AMULET.get());
                 output.accept(EXAMPLE_ITEM.get());
                 output.accept(EXAMPLE_BLOCK_ITEM.get());
             }).build());
@@ -113,6 +118,14 @@ public class The_sword_of_aa {
     public void onServerStarting(ServerStartingEvent event) {
         // Do something when the server starts
         LOGGER.info("HELLO from server starting");
+    }
+
+    // 护身符：主手或副手持有护身符时，濒死不会死亡，取而代之的是复刻不死图腾的效果
+    @SubscribeEvent
+    public void onLivingDeath(LivingDeathEvent event) {
+        if (AmuletItem.tryProtectFromDeath(event.getEntity(), event.getSource())) {
+            event.setCanceled(true);
+        }
     }
 
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
