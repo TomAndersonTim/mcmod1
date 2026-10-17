@@ -18,10 +18,9 @@ import net.minecraft.world.item.crafting.Ingredient;
  *
  * <p>贴图：{@link ArmorMaterial#getName()} 会被 {@code HumanoidArmorLayer} 拼成
  * {@code <命名空间>:textures/models/armor/<名字>_layer_1.png}（护腿用 _layer_2）。
- * 目前返回 {@code "netherite"}，即暂时直接引用原版下界合金盔甲的身体贴图。
- * 等你画好自己的贴图后，把它改成 {@code "the_sword_of_aa:adventure"}，
- * 再把 adventure_layer_1.png / adventure_layer_2.png 放进
- * {@code src/main/resources/assets/the_sword_of_aa/textures/models/armor/} 即可。</p>
+ * 这里返回 {@code "the_sword_of_aa:adventure"}，对应
+ * {@code src/main/resources/assets/the_sword_of_aa/textures/models/armor/adventure_layer_1.png}
+ * 与 {@code adventure_layer_2.png}。这两张目前是原版下界合金盔甲的底板，等着替换成自绘贴图。</p>
  */
 public final class ModArmorMaterials {
 
@@ -67,8 +66,8 @@ public final class ModArmorMaterials {
 
         @Override
         public String getName() {
-            // 暂时借用原版下界合金盔甲贴图；换自定义贴图见类注释
-            return "netherite";
+            // 对应 assets/the_sword_of_aa/textures/models/armor/adventure_layer_{1,2}.png
+            return "the_sword_of_aa:adventure";
         }
 
         @Override
