@@ -10,6 +10,7 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
@@ -17,7 +18,9 @@ import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.Tiers;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
@@ -46,6 +49,8 @@ public class The_sword_of_aa {
     private static final Logger LOGGER = LogUtils.getLogger();
     // Create a Deferred Register to hold Blocks which will all be registered under the "the_sword_of_aa" namespace
     public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, MODID);
+    // Create a Deferred Register to hold BlockEntityTypes which will all be registered under the "the_sword_of_aa" namespace
+    public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, MODID);
     // Create a Deferred Register to hold Items which will all be registered under the "the_sword_of_aa" namespace
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
     // Create a Deferred Register to hold CreativeModeTabs which will all be registered under the "the_sword_of_aa" namespace
@@ -74,19 +79,28 @@ public class The_sword_of_aa {
             () -> new InfiniteArmorItem(ModArmorMaterials.ADVENTURE, ArmorItem.Type.BOOTS,
                     new Item.Properties().rarity(Rarity.EPIC).fireResistant()));
 
+    // 雕像：底座（半砖）+ 完整玩家模型（TomAndersonTim 的皮肤，已打包进模组）
+    // 皮肤文件：assets/the_sword_of_aa/textures/entity/statue_tomanderson_tim.png
+    public static final RegistryObject<Block> STATUE = BLOCKS.register("statue", StatueBlock::new);
+    public static final RegistryObject<Item> STATUE_ITEM = ITEMS.register("statue",
+            () -> new BlockItem(STATUE.get(), new Item.Properties()));
+    public static final RegistryObject<BlockEntityType<StatueBlockEntity>> STATUE_BLOCK_ENTITY = BLOCK_ENTITIES.register(
+            "statue", () -> BlockEntityType.Builder.of(StatueBlockEntity::new, STATUE.get()).build(null));
+
     // The mod's own creative tab, with the id "the_sword_of_aa:mcaa" and the display name "MCAA"
     public static final RegistryObject<CreativeModeTab> MCAA_TAB = CREATIVE_MODE_TABS.register("mcaa", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.the_sword_of_aa.mcaa"))
             .withTabsBefore(CreativeModeTabs.SPAWN_EGGS)
             .icon(() -> AMULET.get().getDefaultInstance())
             .displayItems((parameters, output) -> {
-                // MCAA 分类：冒险协会之剑 + 护身符 + 冒险协会套装
+                // MCAA 分类：冒险协会之剑 + 冒险协会套装 + 护身符 + 雕像
                 output.accept(ADVENTURE_SWORD.get());
                 output.accept(ADVENTURE_HELMET.get());
                 output.accept(ADVENTURE_CHESTPLATE.get());
                 output.accept(ADVENTURE_LEGGINGS.get());
                 output.accept(ADVENTURE_BOOTS.get());
                 output.accept(AMULET.get());
+                output.accept(STATUE_ITEM.get());
             }).build());
 
     public The_sword_of_aa() {
@@ -101,6 +115,8 @@ public class The_sword_of_aa {
         ITEMS.register(modEventBus);
         // Register the Deferred Register to the mod event bus so tabs get registered
         CREATIVE_MODE_TABS.register(modEventBus);
+        // Register the Deferred Register to the mod event bus so block entity types get registered
+        BLOCK_ENTITIES.register(modEventBus);
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
@@ -178,6 +194,12 @@ public class The_sword_of_aa {
             // Some client setup code
             LOGGER.info("HELLO FROM CLIENT SETUP");
             LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
+        }
+
+        // 注册雕像的 BlockEntityRenderer（仅客户端）
+        @SubscribeEvent
+        public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
+            event.registerBlockEntityRenderer(The_sword_of_aa.STATUE_BLOCK_ENTITY.get(), StatueBlockEntityRenderer::new);
         }
     }
 }
