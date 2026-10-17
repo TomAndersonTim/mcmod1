@@ -8,7 +8,9 @@ import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
@@ -18,10 +20,14 @@ import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.Tiers;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.material.MapColor;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
@@ -53,6 +59,8 @@ public class The_sword_of_aa {
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, MODID);
     // Create a Deferred Register to hold Items which will all be registered under the "the_sword_of_aa" namespace
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
+    // Create a Deferred Register to hold EntityTypes which will all be registered under the "the_sword_of_aa" namespace
+    public static final DeferredRegister<EntityType<?>> ENTITY_TYPES = DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, MODID);
     // Create a Deferred Register to hold CreativeModeTabs which will all be registered under the "the_sword_of_aa" namespace
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
 
@@ -87,13 +95,34 @@ public class The_sword_of_aa {
     public static final RegistryObject<BlockEntityType<StatueBlockEntity>> STATUE_BLOCK_ENTITY = BLOCK_ENTITIES.register(
             "statue", () -> BlockEntityType.Builder.of(StatueBlockEntity::new, STATUE.get()).build(null));
 
+    // 特殊 TNT：引信 20 秒、爆炸半径 5 区块（80 格）
+    // 方块属性照抄原版 TNT，点火入口见 SpecialTntBlock；待爆实体与分批挖空见
+    // SpecialPrimedTnt / NukeDestruction
+    public static final RegistryObject<Block> SPECIAL_TNT = BLOCKS.register("special_tnt",
+            () -> new SpecialTntBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.FIRE)
+                    .instabreak()
+                    .sound(SoundType.GRASS)
+                    .ignitedByLava()
+                    // 不作红石导体，与 TntBlock 一致
+                    .isRedstoneConductor((state, level, pos) -> false)));
+    public static final RegistryObject<Item> SPECIAL_TNT_ITEM = ITEMS.register("special_tnt",
+            () -> new BlockItem(SPECIAL_TNT.get(), new Item.Properties()));
+    public static final RegistryObject<EntityType<SpecialPrimedTnt>> SPECIAL_PRIMED_TNT = ENTITY_TYPES.register(
+            "special_tnt", () -> EntityType.Builder.<SpecialPrimedTnt>of(SpecialPrimedTnt::new, MobCategory.MISC)
+                    .fireImmune()
+                    .sized(0.98F, 0.98F)
+                    .clientTrackingRange(10)
+                    .updateInterval(10)
+                    .build("special_tnt"));
+
     // The mod's own creative tab, with the id "the_sword_of_aa:mcaa" and the display name "MCAA"
     public static final RegistryObject<CreativeModeTab> MCAA_TAB = CREATIVE_MODE_TABS.register("mcaa", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.the_sword_of_aa.mcaa"))
             .withTabsBefore(CreativeModeTabs.SPAWN_EGGS)
             .icon(() -> AMULET.get().getDefaultInstance())
             .displayItems((parameters, output) -> {
-                // MCAA 分类：冒险协会之剑 + 冒险协会套装 + 护身符 + 雕像
+                // MCAA 分类：冒险协会之剑 + 冒险协会套装 + 护身符 + 雕像 + 特殊 TNT
                 output.accept(ADVENTURE_SWORD.get());
                 output.accept(ADVENTURE_HELMET.get());
                 output.accept(ADVENTURE_CHESTPLATE.get());
@@ -101,6 +130,7 @@ public class The_sword_of_aa {
                 output.accept(ADVENTURE_BOOTS.get());
                 output.accept(AMULET.get());
                 output.accept(STATUE_ITEM.get());
+                output.accept(SPECIAL_TNT_ITEM.get());
             }).build());
 
     public The_sword_of_aa() {
@@ -117,6 +147,8 @@ public class The_sword_of_aa {
         CREATIVE_MODE_TABS.register(modEventBus);
         // Register the Deferred Register to the mod event bus so block entity types get registered
         BLOCK_ENTITIES.register(modEventBus);
+        // Register the Deferred Register to the mod event bus so entity types get registered
+        ENTITY_TYPES.register(modEventBus);
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
@@ -185,6 +217,15 @@ public class The_sword_of_aa {
         }
     }
 
+    // 特殊 TNT：半径 80 格的挖空任务由服务器 tick 分片推进（见 NukeDestruction）
+    @SubscribeEvent
+    public void onServerTick(TickEvent.ServerTickEvent event) {
+        // 只在一 tick 的末尾推进，避免和世界 tick 抢时间
+        if (event.phase == TickEvent.Phase.END) {
+            NukeDestruction.tick(event.getServer());
+        }
+    }
+
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
     @Mod.EventBusSubscriber(modid = MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
     public static class ClientModEvents {
@@ -200,6 +241,8 @@ public class The_sword_of_aa {
         @SubscribeEvent
         public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
             event.registerBlockEntityRenderer(The_sword_of_aa.STATUE_BLOCK_ENTITY.get(), StatueBlockEntityRenderer::new);
+            // 特殊 TNT 的待爆实体渲染
+            event.registerEntityRenderer(The_sword_of_aa.SPECIAL_PRIMED_TNT.get(), SpecialPrimedTntRenderer::new);
         }
     }
 }

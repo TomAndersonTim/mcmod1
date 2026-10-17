@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "unstable=false": {
+      "model": "the_sword_of_aa:block/special_tnt"
+    },
+    "unstable=true": {
+      "model": "the_sword_of_aa:block/special_tnt"
+    }
+  }
+}
