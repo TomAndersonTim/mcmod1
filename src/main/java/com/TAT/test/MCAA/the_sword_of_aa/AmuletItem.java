@@ -1,5 +1,6 @@
 package com.TAT.test.MCAA.the_sword_of_aa;
 
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
@@ -8,6 +9,7 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.network.PacketDistributor;
 
 /**
  * 护身符（Amulet）——一枚独立物品，拥有与不死图腾完全相同的效果。
@@ -56,7 +58,13 @@ public class AmuletItem extends Item {
         entity.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 900, 1));     // 生命恢复 II / 45 秒
         entity.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 100, 1));       // 伤害吸收 II / 5 秒
         entity.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 800, 0));  // 抗火 I / 40 秒
-        entity.level().broadcastEntityEvent(entity, (byte) 35);                        // 图腾触发的粒子/音效
+        entity.level().broadcastEntityEvent(entity, (byte) 35);                        // 粒子 + 音效（与原版图腾一致）
+
+        // 屏幕中央的激活大图标：原版写死显示不死图腾，
+        // 这里在 35 事件之后补发一个包，让客户端把图标覆盖成护身符
+        if (entity instanceof ServerPlayer serverPlayer) {
+            ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> serverPlayer), new AmuletActivationPacket());
+        }
 
         return true;
     }
