@@ -1,5 +1,9 @@
 {
   "itemGroup.the_sword_of_aa.mcaa": "MCAA",
   "item.the_sword_of_aa.amulet": "Amulet",
-  "item.the_sword_of_aa.adventure_sword": "Adventure Association Sword"
+  "item.the_sword_of_aa.adventure_sword": "Adventure Association Sword",
+  "item.the_sword_of_aa.adventure_helmet": "Adventure Association Helmet",
+  "item.the_sword_of_aa.adventure_chestplate": "Adventure Association Chestplate",
+  "item.the_sword_of_aa.adventure_leggings": "Adventure Association Leggings",
+  "item.the_sword_of_aa.adventure_boots": "Adventure Association Boots"
 }

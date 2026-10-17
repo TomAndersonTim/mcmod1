@@ -1,5 +1,9 @@
 {
   "itemGroup.the_sword_of_aa.mcaa": "MCAA",
   "item.the_sword_of_aa.amulet": "护身符",
-  "item.the_sword_of_aa.adventure_sword": "冒险协会之剑"
+  "item.the_sword_of_aa.adventure_sword": "冒险协会之剑",
+  "item.the_sword_of_aa.adventure_helmet": "冒险协会头盔",
+  "item.the_sword_of_aa.adventure_chestplate": "冒险协会胸甲",
+  "item.the_sword_of_aa.adventure_leggings": "冒险协会护腿",
+  "item.the_sword_of_aa.adventure_boots": "冒险协会靴子"
 }

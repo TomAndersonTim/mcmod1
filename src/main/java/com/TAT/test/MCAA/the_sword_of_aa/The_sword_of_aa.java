@@ -4,10 +4,12 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
@@ -19,6 +21,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
+import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -56,14 +59,33 @@ public class The_sword_of_aa {
     public static final RegistryObject<Item> ADVENTURE_SWORD = ITEMS.register("adventure_sword",
             () -> new AdventureSwordItem(Tiers.NETHERITE, new Item.Properties().rarity(Rarity.EPIC).fireResistant()));
 
+    // 冒险协会套装：一整套护甲，耐久无穷、防御无穷（穿齐整套时免伤，见 onLivingHurt）
+    // 身体贴图暂时引用原版下界合金盔甲，换自定义贴图见 ModArmorMaterials
+    public static final RegistryObject<Item> ADVENTURE_HELMET = ITEMS.register("adventure_helmet",
+            () -> new InfiniteArmorItem(ModArmorMaterials.ADVENTURE, ArmorItem.Type.HELMET,
+                    new Item.Properties().rarity(Rarity.EPIC).fireResistant()));
+    public static final RegistryObject<Item> ADVENTURE_CHESTPLATE = ITEMS.register("adventure_chestplate",
+            () -> new InfiniteArmorItem(ModArmorMaterials.ADVENTURE, ArmorItem.Type.CHESTPLATE,
+                    new Item.Properties().rarity(Rarity.EPIC).fireResistant()));
+    public static final RegistryObject<Item> ADVENTURE_LEGGINGS = ITEMS.register("adventure_leggings",
+            () -> new InfiniteArmorItem(ModArmorMaterials.ADVENTURE, ArmorItem.Type.LEGGINGS,
+                    new Item.Properties().rarity(Rarity.EPIC).fireResistant()));
+    public static final RegistryObject<Item> ADVENTURE_BOOTS = ITEMS.register("adventure_boots",
+            () -> new InfiniteArmorItem(ModArmorMaterials.ADVENTURE, ArmorItem.Type.BOOTS,
+                    new Item.Properties().rarity(Rarity.EPIC).fireResistant()));
+
     // The mod's own creative tab, with the id "the_sword_of_aa:mcaa" and the display name "MCAA"
     public static final RegistryObject<CreativeModeTab> MCAA_TAB = CREATIVE_MODE_TABS.register("mcaa", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.the_sword_of_aa.mcaa"))
             .withTabsBefore(CreativeModeTabs.SPAWN_EGGS)
             .icon(() -> AMULET.get().getDefaultInstance())
             .displayItems((parameters, output) -> {
-                // MCAA 分类：冒险协会之剑 + 护身符
+                // MCAA 分类：冒险协会之剑 + 护身符 + 冒险协会套装
                 output.accept(ADVENTURE_SWORD.get());
+                output.accept(ADVENTURE_HELMET.get());
+                output.accept(ADVENTURE_CHESTPLATE.get());
+                output.accept(ADVENTURE_LEGGINGS.get());
+                output.accept(ADVENTURE_BOOTS.get());
                 output.accept(AMULET.get());
             }).build());
 
@@ -130,6 +152,20 @@ public class The_sword_of_aa {
         if (holding) {
             // 每 tick 刷新一次（每次 2 秒），因此离开手后最多 2 秒自动消失
             entity.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 40, 255, false, false, true));
+        }
+    }
+
+    // 冒险协会套装：「防御无穷」——穿齐头、胸、腿、脚四件时直接免伤。
+    // 之所以不用 ARMOR 属性实现，是因为原版减伤公式把有效护甲值截断在 20 点（最多减伤 80%）。
+    // 与护身符保持一致：带「无视无敌」标签的伤害（如 /kill、虚空）依旧生效，避免出现无法死亡的情况。
+    @SubscribeEvent
+    public void onLivingHurt(LivingHurtEvent event) {
+        LivingEntity entity = event.getEntity();
+        if (event.getSource().is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
+            return;
+        }
+        if (InfiniteArmorItem.isWearingFullSet(entity)) {
+            event.setCanceled(true);
         }
     }
 
